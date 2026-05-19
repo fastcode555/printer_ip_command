@@ -5,12 +5,14 @@ import 'package:printer_ip_command/printer_ip_command.dart';
 const _usage = '''
 Usage: dart run bin/printer_probe.dart <ip> [opts]
 
-  --raw-port   Raw TCP port  (default 9100)
-  --ipp-port   IPP port      (default 631)
-  --snmp-port  SNMP UDP port (default 161)
-  --http-port  HTTP port     (default 80)
-  --community  SNMP community (default "public")
+  --raw-port   Raw TCP port    (default 9100)
+  --ipp-port   IPP port        (default 631)
+  --snmp-port  SNMP UDP port   (default 161)
+  --http-port  HTTP port       (default 80)
+  --community  SNMP community  (default "public")
   --print      Send a test receipt if protocol == escPos
+  --encoding   Receipt text encoding for --print: big5 | gbk | ascii
+               (default big5 — HK / Traditional Chinese market)
   --deep       Enable invasive probes (PJL, ZPL ~HI, TSPL ~!T).
                WARNING: may print garbage or wedge some cheap thermal
                firmwares. Use in lab/diagnostic only — NOT in production.
@@ -30,6 +32,7 @@ Future<int> main(List<String> argv) async {
   var community = 'public';
   var doPrint = false;
   var deep = false;
+  var encoding = ReceiptEncoding.big5;
 
   for (var i = 1; i < argv.length; i++) {
     final a = argv[i];
@@ -47,6 +50,14 @@ Future<int> main(List<String> argv) async {
       doPrint = true;
     } else if (a == '--deep') {
       deep = true;
+    } else if (a == '--encoding' && i + 1 < argv.length) {
+      final v = argv[++i].toLowerCase();
+      encoding = switch (v) {
+        'big5' => ReceiptEncoding.big5,
+        'gbk' => ReceiptEncoding.gbk,
+        'ascii' => ReceiptEncoding.ascii,
+        _ => throw FormatException('--encoding must be one of big5|gbk|ascii (got "$v")'),
+      };
     } else {
       stderr.writeln('Unknown arg: $a\n$_usage');
       return 64;
@@ -87,9 +98,12 @@ Future<int> main(List<String> argv) async {
       stderr.writeln('\n--print requires ESC/POS (got ${report.device.protocol.name})');
       return 3;
     }
-    await _sendTestReceipt(host, rawPort, report.device);
+    await _sendTestReceipt(host, rawPort, report.device, encoding);
   }
-  return 0;
+  // Force exit: MDnsClient / HttpClient occasionally leave lingering sockets
+  // that keep the event loop alive past main(). Safe here because we have no
+  // pending writes once all reports + receipts have flushed.
+  exit(0);
 }
 
 void _printChannel1EscPos(IdentifyReport report, int rawPort, bool deep) {
@@ -316,23 +330,15 @@ String _safeAscii(List<int> b) {
   return sb.toString().trim();
 }
 
-Future<void> _sendTestReceipt(String host, int port, DeviceInfo info) async {
-  final bytes = buildReceipt(
-    title: '测试小票',
-    lines: [
-      '--------------------------------',
-      'IP       : $host',
-      '协议     : ${info.protocol.name}',
-      if (info.vendor != null) '厂商     : ${info.vendor}',
-      if (info.model != null) '型号     : ${info.model}',
-      if (info.firmware != null) '固件     : ${info.firmware}',
-      '时间     : ${DateTime.now().toIso8601String()}',
-      '--------------------------------',
-      '这是一张来自 printer_ip_command',
-      '的中文测试单 (GBK)。',
-    ],
-  );
-  print('Sending ${bytes.length} bytes test receipt ...');
+Future<void> _sendTestReceipt(
+  String host,
+  int port,
+  DeviceInfo info,
+  ReceiptEncoding encoding,
+) async {
+  final (title, lines) = _receiptText(host, info, encoding);
+  final bytes = buildReceipt(title: title, lines: lines, encoding: encoding);
+  print('Sending ${bytes.length} bytes test receipt (encoding: ${encoding.name}) ...');
   final socket = await Socket.connect(host, port,
       timeout: const Duration(seconds: 3));
   try {
@@ -342,4 +348,62 @@ Future<void> _sendTestReceipt(String host, int port, DeviceInfo info) async {
     await socket.close();
   }
   print('Done.');
+}
+
+(String, List<String>) _receiptText(
+  String host,
+  DeviceInfo info,
+  ReceiptEncoding encoding,
+) {
+  final ts = DateTime.now().toIso8601String();
+  switch (encoding) {
+    case ReceiptEncoding.big5:
+      return (
+        '測試小票',
+        [
+          '--------------------------------',
+          'IP       : $host',
+          '協定     : ${info.protocol.name}',
+          if (info.vendor != null) '廠商     : ${info.vendor}',
+          if (info.model != null) '型號     : ${info.model}',
+          if (info.firmware != null) '韌體     : ${info.firmware}',
+          '時間     : $ts',
+          '--------------------------------',
+          '這是一張來自 printer_ip_command',
+          '的繁體中文測試單 (Big5)。',
+          '香港市場使用此編碼。',
+        ],
+      );
+    case ReceiptEncoding.gbk:
+      return (
+        '测试小票',
+        [
+          '--------------------------------',
+          'IP       : $host',
+          '协议     : ${info.protocol.name}',
+          if (info.vendor != null) '厂商     : ${info.vendor}',
+          if (info.model != null) '型号     : ${info.model}',
+          if (info.firmware != null) '固件     : ${info.firmware}',
+          '时间     : $ts',
+          '--------------------------------',
+          '这是一张来自 printer_ip_command',
+          '的简体中文测试单 (GBK)。',
+        ],
+      );
+    case ReceiptEncoding.ascii:
+      return (
+        'Test Receipt',
+        [
+          '--------------------------------',
+          'IP       : $host',
+          'Protocol : ${info.protocol.name}',
+          if (info.vendor != null) 'Vendor   : ${info.vendor}',
+          if (info.model != null) 'Model    : ${info.model}',
+          if (info.firmware != null) 'Firmware : ${info.firmware}',
+          'Time     : $ts',
+          '--------------------------------',
+          'printer_ip_command test slip.',
+        ],
+      );
+  }
 }

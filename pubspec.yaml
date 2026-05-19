@@ -7,6 +7,7 @@ environment:
   sdk: ^3.6.0
 
 dependencies:
+  enough_convert: ^1.6.0
   gbk_codec: ^0.4.0
   multicast_dns: ^0.3.2
 
