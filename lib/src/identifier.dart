@@ -138,6 +138,18 @@ DeviceInfo mergeDeviceInfo({
 }
 
 class PrinterIdentifier {
+  /// Identify a printer at [host].
+  ///
+  /// **[deep]** controls "invasive" probes that may leave bytes in the print
+  /// buffer of unrelated firmwares or trigger undefined-command behaviour on
+  /// cheap thermals:
+  ///   - ZPL `~HI` + TSPL `~!T` sent to 9100   — would print as garbage on ESC/POS
+  ///   - PJL `\x1B%-12345X` UEL                — undefined ESC seq for ESC/POS firmware,
+  ///                                             clones have been observed wedging
+  ///
+  /// Default is `false` (safe): only DLE EOT 1 on 9100, plus GS I (Epson-defined
+  /// read-only ID query) when ESC/POS is confirmed. Other channels (IPP/SNMP/
+  /// HTTP/mDNS) live on independent ports and are always safe.
   static Future<IdentifyReport> identify(
     String host, {
     int rawPort = 9100,
@@ -146,13 +158,20 @@ class PrinterIdentifier {
     int httpPort = 80,
     String snmpCommunity = 'public',
     Duration timeout = const Duration(seconds: 2),
+    bool deep = false,
   }) async {
     final probeOutcome = _run<ProbeResult>(
-      () => PrinterProbe.probe(host, port: rawPort, timeout: timeout),
+      () => PrinterProbe.probe(host, port: rawPort, timeout: timeout, deep: deep),
     );
-    final pjlOutcome = _run<PjlResult?>(
-      () => PjlProbe.query(host, port: rawPort, timeout: timeout),
-    );
+    final pjlOutcome = deep
+        ? _run<PjlResult?>(
+            () => PjlProbe.query(host, port: rawPort, timeout: timeout),
+          )
+        : Future.value(const ChannelOutcome<PjlResult?>(
+            status: ChannelStatus.skipped,
+            elapsed: Duration.zero,
+            error: 'invasive probe — only runs with --deep',
+          ));
     final ippOutcome = _run<IppResult?>(
       () => IppProbe.query(host, port: ippPort, timeout: timeout),
     );

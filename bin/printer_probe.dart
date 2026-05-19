@@ -11,6 +11,9 @@ Usage: dart run bin/printer_probe.dart <ip> [opts]
   --http-port  HTTP port     (default 80)
   --community  SNMP community (default "public")
   --print      Send a test receipt if protocol == escPos
+  --deep       Enable invasive probes (PJL, ZPL ~HI, TSPL ~!T).
+               WARNING: may print garbage or wedge some cheap thermal
+               firmwares. Use in lab/diagnostic only — NOT in production.
 ''';
 
 Future<int> main(List<String> argv) async {
@@ -26,6 +29,7 @@ Future<int> main(List<String> argv) async {
   var httpPort = 80;
   var community = 'public';
   var doPrint = false;
+  var deep = false;
 
   for (var i = 1; i < argv.length; i++) {
     final a = argv[i];
@@ -41,6 +45,8 @@ Future<int> main(List<String> argv) async {
       community = argv[++i];
     } else if (a == '--print') {
       doPrint = true;
+    } else if (a == '--deep') {
+      deep = true;
     } else {
       stderr.writeln('Unknown arg: $a\n$_usage');
       return 64;
@@ -50,6 +56,11 @@ Future<int> main(List<String> argv) async {
   print('========================================');
   print('Identifying $host');
   print('  raw:$rawPort  ipp:$ippPort  snmp:$snmpPort  http:$httpPort');
+  if (deep) {
+    print('  mode: ⚠ DEEP (invasive probes enabled — may print garbage)');
+  } else {
+    print('  mode: SAFE (PJL / ZPL / TSPL skipped)');
+  }
   print('========================================\n');
 
   final report = await PrinterIdentifier.identify(
@@ -59,9 +70,10 @@ Future<int> main(List<String> argv) async {
     snmpPort: snmpPort,
     httpPort: httpPort,
     snmpCommunity: community,
+    deep: deep,
   );
 
-  _printChannel1EscPos(report, rawPort);
+  _printChannel1EscPos(report, rawPort, deep);
   _printChannel2GsIdentity(report, rawPort);
   _printChannel3Pjl(report, rawPort);
   _printChannel4Ipp(report, ippPort);
@@ -80,10 +92,14 @@ Future<int> main(List<String> argv) async {
   return 0;
 }
 
-void _printChannel1EscPos(IdentifyReport report, int rawPort) {
+void _printChannel1EscPos(IdentifyReport report, int rawPort, bool deep) {
   final ch = report.escPosProbe;
   print('[1/7] ESC/POS / Raw protocol probe   (TCP $rawPort)');
-  print('      Commands: DLE EOT 1 (0x10 04 01)  +  ZPL ~HI (probe-only)');
+  if (deep) {
+    print('      Commands: DLE EOT 1 (0x10 04 01)  +  ZPL ~HI  [DEEP MODE]');
+  } else {
+    print('      Commands: DLE EOT 1 (0x10 04 01) only  (safe — no print buffer side-effects)');
+  }
   _printOutcomeHeader(ch);
   if (ch.ok) {
     final pr = ch.value!;
