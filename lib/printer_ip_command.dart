@@ -2,6 +2,7 @@ library;
 
 export 'src/escpos_identity.dart'
     show EscPosIdentity, parseGsIResponse, probeEscPosIdentity;
+export 'src/chinese_rom.dart' show ChineseRom, classifyLanguage;
 export 'src/escpos_receipt.dart' show ReceiptEncoding, buildReceipt;
 export 'src/escpos_status.dart' show EscPosStatus, parseStatusByte;
 export 'src/http_fingerprint.dart'
