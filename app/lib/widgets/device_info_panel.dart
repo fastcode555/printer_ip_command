@@ -3,8 +3,9 @@ import 'package:printer_ip_command/printer_ip_command.dart';
 
 class DeviceInfoPanel extends StatelessWidget {
   final DeviceInfo device;
+  final VoidCallback? onCopy;
 
-  const DeviceInfoPanel({super.key, required this.device});
+  const DeviceInfoPanel({super.key, required this.device, this.onCopy});
 
   @override
   Widget build(BuildContext context) {
@@ -15,8 +16,22 @@ class DeviceInfoPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Device',
-                style: TextStyle(fontSize: 12, color: Colors.grey)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Device',
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                if (onCopy != null)
+                  IconButton(
+                    icon: const Icon(Icons.copy_outlined, size: 20),
+                    tooltip: '复制完整报告',
+                    onPressed: onCopy,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+              ],
+            ),
             const SizedBox(height: 4),
             _row('host', device.host),
             _row('protocol', _enumName(device.protocol)),

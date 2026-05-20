@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:printer_ip_command/printer_ip_command.dart';
 
 import '../services/printer_service.dart';
+import '../services/report_formatter.dart';
 import '../widgets/channel_card.dart';
 import '../widgets/device_info_panel.dart';
 import '../widgets/print_test_dialog.dart';
@@ -53,6 +55,19 @@ class _DiagnosePageState extends State<DiagnosePage> {
         content: Text(e.message),
       ));
     }
+  }
+
+  Future<void> _copyReport(IdentifyReport report) async {
+    final messenger = ScaffoldMessenger.of(context);
+    await Clipboard.setData(
+      ClipboardData(text: formatReportAsText(report)),
+    );
+    if (!mounted) return;
+    messenger.showSnackBar(SnackBar(
+      backgroundColor: Colors.green.shade700,
+      content: const Text('已复制完整报告'),
+      duration: const Duration(seconds: 2),
+    ));
   }
 
   @override
@@ -118,7 +133,10 @@ class _DiagnosePageState extends State<DiagnosePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-            DeviceInfoPanel(device: report.device),
+            DeviceInfoPanel(
+              device: report.device,
+              onCopy: () => _copyReport(report),
+            ),
             ChannelCard(
               label: 'ch1 ESC/POS probe',
               status: report.escPosProbe.status,
