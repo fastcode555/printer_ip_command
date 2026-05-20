@@ -38,9 +38,9 @@ class _DiagnosePageState extends State<DiagnosePage> {
   }
 
   Future<void> _runPrintTest(String host) async {
+    final messenger = ScaffoldMessenger.of(context);
     final enc = await showPrintTestDialog(context);
     if (enc == null) return;
-    final messenger = ScaffoldMessenger.of(context);
     try {
       final n = await widget.service.printTest(host, enc);
       messenger.showSnackBar(SnackBar(
@@ -71,7 +71,7 @@ class _DiagnosePageState extends State<DiagnosePage> {
                 hintText: '192.168.0.10',
                 border: OutlineInputBorder(),
               ),
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 8),
