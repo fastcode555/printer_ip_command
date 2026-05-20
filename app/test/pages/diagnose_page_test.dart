@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:printer_ip_app/pages/diagnose_page.dart';
 import 'package:printer_ip_app/services/printer_service.dart';
@@ -119,5 +120,38 @@ void main() {
     await tester.tap(find.widgetWithText(ElevatedButton, 'Identify'));
     await tester.pumpAndSettle();
     expect(find.text('Send test receipt'), findsNothing);
+  });
+
+  testWidgets('tapping copy icon writes formatted report to clipboard',
+      (tester) async {
+    final service = _FakeService(_report(protocol: Protocol.escPos));
+    await tester.pumpWidget(MaterialApp(home: DiagnosePage(service: service)));
+
+    await tester.enterText(find.byType(TextField), '192.168.225.78');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Identify'));
+    await tester.pumpAndSettle();
+
+    // Mock the platform clipboard channel.
+    String? capturedText;
+    tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') {
+        capturedText = (call.arguments as Map)['text'] as String;
+      }
+      return null;
+    });
+
+    await tester.tap(find.byIcon(Icons.copy_outlined));
+    await tester.pumpAndSettle();
+
+    expect(capturedText, isNotNull);
+    expect(capturedText, contains('host            : 192.168.225.78'));
+    expect(capturedText, contains('ch1 ESC/POS probe'));
+    expect(find.text('已复制完整报告'), findsOneWidget);
+
+    // Unhook the mock so it doesn't leak to other tests.
+    tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null);
   });
 }
