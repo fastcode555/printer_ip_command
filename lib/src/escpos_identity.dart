@@ -3,19 +3,31 @@ import 'dart:io';
 import 'dart:typed_data';
 
 class EscPosIdentity {
-  final String? firmware;
-  final String? manufacturer;
-  final String? model;
-  final String? serial;
+  final String? firmware;       // GS I 65
+  final String? manufacturer;   // GS I 66
+  final String? model;          // GS I 67
+  final String? serial;         // GS I 68
+  final String? language;       // GS I 69 (0x45) — "font of language" ROM
 
-  const EscPosIdentity({this.firmware, this.manufacturer, this.model, this.serial});
+  const EscPosIdentity({
+    this.firmware,
+    this.manufacturer,
+    this.model,
+    this.serial,
+    this.language,
+  });
 
   bool get hasAny =>
-      firmware != null || manufacturer != null || model != null || serial != null;
+      firmware != null ||
+      manufacturer != null ||
+      model != null ||
+      serial != null ||
+      language != null;
 
   @override
   String toString() =>
-      'EscPosIdentity(mfr: $manufacturer, model: $model, fw: $firmware, sn: $serial)';
+      'EscPosIdentity(mfr: $manufacturer, model: $model, fw: $firmware, '
+      'sn: $serial, lang: $language)';
 }
 
 // GS I n — request printer identity. n: 65=firmware 66=mfr 67=model 68=serial
@@ -57,12 +69,12 @@ Future<EscPosIdentity?> probeEscPosIdentity(
   }
 }
 
-/// Send GS I 65/66/67/68 over an already-connected socket and collect responses.
+/// Send GS I 65/66/67/68/69 over an already-connected socket and collect responses.
 ///
-/// Strategy: send all four queries back-to-back, then accumulate response bytes
-/// for [totalWait]. Split on NUL boundaries to recover four fields in order.
+/// Strategy: send all five queries back-to-back, then accumulate response bytes
+/// for [totalWait]. Split on NUL boundaries to recover five fields in order.
 /// Printers that don't implement a given field stay silent — we tolerate fewer
-/// than four segments in the reply.
+/// than five segments in the reply.
 Future<EscPosIdentity> queryEscPosIdentity(
   Socket socket, {
   Duration totalWait = const Duration(milliseconds: 800),
@@ -102,6 +114,7 @@ Future<EscPosIdentity> queryEscPosIdentity(
   socket.add(gsIQuery(66));
   socket.add(gsIQuery(67));
   socket.add(gsIQuery(68));
+  socket.add(gsIQuery(69)); // 0x45: font of language (Big5 / GBK / ...)
   await socket.flush();
 
   try {
@@ -122,5 +135,6 @@ Future<EscPosIdentity> queryEscPosIdentity(
     manufacturer: pick(1),
     model: pick(2),
     serial: pick(3),
+    language: pick(4),
   );
 }

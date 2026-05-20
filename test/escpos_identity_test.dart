@@ -17,6 +17,18 @@ void main() {
       expect(parseGsIResponse(bytes), 'TM-T88V');
     });
 
+    test('GS I 0x45 sample: header + CHINA GB18030 + NUL', () {
+      // Real bytes captured from TM-T88III 8.00 ESC/POS firmware via
+      // `printf '\x1D\x49\x45' | nc 192.168.225.78 9100`:
+      //   5f 43 48 49 4e 41 20 47 42 31 38 30 33 30 00
+      // After parseGsIResponse strips the 0x5F header, expect 'CHINA GB18030'.
+      final bytes = Uint8List.fromList([
+        0x5F, 0x43, 0x48, 0x49, 0x4E, 0x41, 0x20,
+        0x47, 0x42, 0x31, 0x38, 0x30, 0x33, 0x30, 0x00,
+      ]);
+      expect(parseGsIResponse(bytes), 'CHINA GB18030');
+    });
+
     test('returns null when bytes are empty', () {
       expect(parseGsIResponse(Uint8List(0)), isNull);
     });
