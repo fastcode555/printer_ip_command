@@ -131,7 +131,7 @@ void _printChannel1EscPos(IdentifyReport report, int rawPort, bool deep) {
 void _printChannel2GsIdentity(IdentifyReport report, int rawPort) {
   final ch = report.gsIdentity;
   print('[2/7] ESC/POS GS I identity          (TCP $rawPort)');
-  print('      Commands: GS I 65/66/67/68 → firmware, manufacturer, model, serial');
+  print('      Commands: GS I 65/66/67/68/69 → firmware, manufacturer, model, serial, language');
   _printOutcomeHeader(ch);
   if (ch.ok) {
     final id = ch.value!;
@@ -139,6 +139,7 @@ void _printChannel2GsIdentity(IdentifyReport report, int rawPort) {
     print('      manufacturer     : ${id.manufacturer ?? "(none)"}');
     print('      model            : ${id.model ?? "(none)"}');
     print('      serial           : ${id.serial ?? "(none)"}');
+    print('      language         : ${id.language ?? "(none)"}');
   } else if (ch.status == ChannelStatus.skipped) {
     print('      (skipped — only runs when 9100 probe returns ESC/POS)');
   }
@@ -235,6 +236,7 @@ void _printAggregated(IdentifyReport report) {
   _row('model',         d.model,         source: _modelSource(report, d));
   _row('firmware',      d.firmware,      source: report.gsIdentity.ok && d.firmware != null ? 'ch2: GS I 65' : '(none)');
   _row('serial',        d.serial,        source: _serialSource(report, d));
+  _row('language',      d.language,      source: report.gsIdentity.ok && d.language != null ? 'ch2: GS I 69 (0x45)' : '(none)');
   _row('makeAndModel',  d.makeAndModel,  source: report.ipp.ok ? 'ch4: IPP' : '(none)');
   _row('sysDescr',      d.sysDescr,      source: report.snmp.ok && d.sysDescr != null ? 'ch5: SNMP sysDescr' : '(none)');
   _row('sysName',       d.sysName,       source: report.snmp.ok && d.sysName != null ? 'ch5: SNMP sysName' : '(none)');
