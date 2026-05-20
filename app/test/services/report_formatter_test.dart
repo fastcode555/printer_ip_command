@@ -4,42 +4,42 @@ import 'package:printer_ip_command/printer_ip_command.dart';
 
 void main() {
   test('formatReportAsText emits expected header + 7 channel lines', () {
-    final report = IdentifyReport(
+    const report = IdentifyReport(
       host: '192.168.225.78',
-      escPosProbe: const ChannelOutcome<ProbeResult>(
+      escPosProbe: ChannelOutcome<ProbeResult>(
         status: ChannelStatus.success,
         elapsed: Duration(milliseconds: 1121),
       ),
-      gsIdentity: const ChannelOutcome<EscPosIdentity>(
+      gsIdentity: ChannelOutcome<EscPosIdentity>(
         status: ChannelStatus.success,
         elapsed: Duration(milliseconds: 831),
       ),
-      pjl: const ChannelOutcome<PjlResult>(
+      pjl: ChannelOutcome<PjlResult>(
         status: ChannelStatus.skipped,
         elapsed: Duration.zero,
         error: 'only runs with --deep',
       ),
-      ipp: const ChannelOutcome<IppResult>(
+      ipp: ChannelOutcome<IppResult>(
         status: ChannelStatus.failed,
         elapsed: Duration(milliseconds: 1024),
         error: 'no IPP response (port closed or path mismatch)',
       ),
-      snmp: const ChannelOutcome<SnmpResult>(
+      snmp: ChannelOutcome<SnmpResult>(
         status: ChannelStatus.failed,
         elapsed: Duration(milliseconds: 2006),
         error: 'no SNMP response (agent disabled or community mismatch)',
       ),
-      http: const ChannelOutcome<HttpFingerprint>(
+      http: ChannelOutcome<HttpFingerprint>(
         status: ChannelStatus.failed,
         elapsed: Duration(milliseconds: 227),
         error: 'no HTTP banner (port closed or non-HTTP)',
       ),
-      mdns: const ChannelOutcome<MdnsResult>(
+      mdns: ChannelOutcome<MdnsResult>(
         status: ChannelStatus.failed,
         elapsed: Duration(milliseconds: 2029),
         error: 'no mDNS service matching this IP (device not advertising)',
       ),
-      device: const DeviceInfo(
+      device: DeviceInfo(
         host: '192.168.225.78',
         protocol: Protocol.escPos,
         vendor: 'EPSON',
@@ -78,44 +78,44 @@ void main() {
   });
 
   test('formatReportAsText renders em-dash for empty document formats list', () {
-    final report = IdentifyReport(
+    const report = IdentifyReport(
       host: '10.0.0.1',
-      escPosProbe: const ChannelOutcome<ProbeResult>(
+      escPosProbe: ChannelOutcome<ProbeResult>(
         status: ChannelStatus.failed,
         elapsed: Duration(seconds: 2),
         error: 'timeout',
       ),
-      gsIdentity: const ChannelOutcome<EscPosIdentity>(
+      gsIdentity: ChannelOutcome<EscPosIdentity>(
         status: ChannelStatus.skipped,
         elapsed: Duration.zero,
         error: 'protocol is not ESC/POS',
       ),
-      pjl: const ChannelOutcome<PjlResult>(
+      pjl: ChannelOutcome<PjlResult>(
         status: ChannelStatus.skipped,
         elapsed: Duration.zero,
         error: 'skipped',
       ),
-      ipp: const ChannelOutcome<IppResult>(
+      ipp: ChannelOutcome<IppResult>(
         status: ChannelStatus.failed,
         elapsed: Duration(seconds: 2),
         error: 'timeout',
       ),
-      snmp: const ChannelOutcome<SnmpResult>(
+      snmp: ChannelOutcome<SnmpResult>(
         status: ChannelStatus.failed,
         elapsed: Duration(seconds: 2),
         error: 'timeout',
       ),
-      http: const ChannelOutcome<HttpFingerprint>(
+      http: ChannelOutcome<HttpFingerprint>(
         status: ChannelStatus.failed,
         elapsed: Duration(seconds: 2),
         error: 'timeout',
       ),
-      mdns: const ChannelOutcome<MdnsResult>(
+      mdns: ChannelOutcome<MdnsResult>(
         status: ChannelStatus.failed,
         elapsed: Duration(seconds: 2),
         error: 'timeout',
       ),
-      device: const DeviceInfo(host: '10.0.0.1', protocol: Protocol.unknown),
+      device: DeviceInfo(host: '10.0.0.1', protocol: Protocol.unknown),
     );
 
     final text = formatReportAsText(report);
