@@ -44,7 +44,7 @@ void main() {
       await probe.close();
 
       final service = PrinterService();
-      expect(
+      await expectLater(
         () => service.printTest(
           InternetAddress.loopbackIPv4.address,
           ReceiptEncoding.ascii,
