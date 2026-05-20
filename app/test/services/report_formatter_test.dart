@@ -46,6 +46,7 @@ void main() {
         model: 'TM-T88III',
         firmware: '8.00 ESC/POS',
         serial: 'E2QG064874',
+        language: 'CHINA GB18030',
       ),
     );
 
@@ -59,6 +60,8 @@ void main() {
     expect(text, contains('firmware        : 8.00 ESC/POS'));
     expect(text, contains('serial          : E2QG064874'));
     expect(text, contains('mDNS hostname   : —'));
+    expect(text, contains('language        : CHINA GB18030'));
+    expect(text, contains('Chinese ROM     : 简体 (GBK)'));
     expect(text, contains('formats         : —'));
 
     // Channels with status markers.
@@ -121,6 +124,8 @@ void main() {
     final text = formatReportAsText(report);
     expect(text, contains('vendor          : —'));
     expect(text, contains('model           : —'));
+    expect(text, contains('language        : —'));
+    expect(text, contains('Chinese ROM     : 未知'));
     expect(text, contains('formats         : —'));
   });
 }

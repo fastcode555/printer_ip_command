@@ -12,6 +12,8 @@ String formatReportAsText(IdentifyReport report) {
   _kv(buf, 'firmware', device.firmware);
   _kv(buf, 'serial', device.serial);
   _kv(buf, 'mDNS hostname', device.mdnsHostname);
+  _kv(buf, 'language', device.language);
+  _kv(buf, 'Chinese ROM', _chineseRomText(classifyLanguage(device.language)));
   _kv(buf, 'formats',
       device.documentFormats.isEmpty ? null : device.documentFormats.join(', '));
 
@@ -64,4 +66,12 @@ void _channel(
   final summary =
       outcome.status == ChannelStatus.success ? okSummary() : outcome.error;
   buf.writeln('${label.padRight(20)} [$marker]   $ms ms   $summary');
+}
+
+String _chineseRomText(ChineseRom rom) {
+  return switch (rom) {
+    ChineseRom.traditional => '繁体 (Big5)',
+    ChineseRom.simplified => '简体 (GBK)',
+    ChineseRom.unknown => '未知',
+  };
 }
