@@ -40,6 +40,8 @@ class DeviceInfoPanel extends StatelessWidget {
             _row('firmware', device.firmware),
             _row('serial', device.serial),
             _row('mDNS hostname', device.mdnsHostname),
+            _row('language', device.language),
+            _row('Chinese ROM', _chineseRomText(classifyLanguage(device.language))),
             if (device.documentFormats.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
@@ -73,4 +75,12 @@ class DeviceInfoPanel extends StatelessWidget {
   }
 
   String _enumName(Protocol p) => p.toString().split('.').last;
+
+  String _chineseRomText(ChineseRom rom) {
+    return switch (rom) {
+      ChineseRom.traditional => '繁体 (Big5)',
+      ChineseRom.simplified => '简体 (GBK)',
+      ChineseRom.unknown => '未知',
+    };
+  }
 }
