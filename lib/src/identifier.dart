@@ -36,6 +36,7 @@ class DeviceInfo {
   final String? model;
   final String? firmware;
   final String? serial;
+  final String? language;
   final String? makeAndModel;
   final String? sysDescr;
   final String? sysName;
@@ -52,6 +53,7 @@ class DeviceInfo {
     this.model,
     this.firmware,
     this.serial,
+    this.language,
     this.makeAndModel,
     this.sysDescr,
     this.sysName,
@@ -65,8 +67,8 @@ class DeviceInfo {
   @override
   String toString() => 'DeviceInfo('
       'host: $host, protocol: $protocol, vendor: $vendor, model: $model, '
-      'firmware: $firmware, serial: $serial, makeAndModel: $makeAndModel, '
-      'sysDescr: $sysDescr, sysName: $sysName, '
+      'firmware: $firmware, serial: $serial, language: $language, '
+      'makeAndModel: $makeAndModel, sysDescr: $sysDescr, sysName: $sysName, '
       'escPosStatus: $escPosStatus, ippState: $ippState, '
       'documentFormats: $documentFormats)';
 }
@@ -115,6 +117,7 @@ DeviceInfo mergeDeviceInfo({
       http?.title ??
       snmp?.sysDescr;
   final serial = identity?.serial ?? snmp?.printerSerial;
+  final language = identity?.language;
   final mergedFormats = <String>{
     ...?ipp?.documentFormats,
     ...?mdns?.supportedFormats,
@@ -126,6 +129,7 @@ DeviceInfo mergeDeviceInfo({
     model: model,
     firmware: identity?.firmware,
     serial: serial,
+    language: language,
     makeAndModel: ipp?.makeAndModel,
     sysDescr: snmp?.sysDescr,
     sysName: snmp?.sysName,

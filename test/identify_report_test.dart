@@ -25,13 +25,14 @@ void main() {
           await socket.flush();
           await socket.close();
         } else {
-          // GS I connection: reply in GS I 65/66/67/68 order
+          // GS I connection: reply in GS I 65/66/67/68/69 order
           socket.listen((_) {});
           await Future<void>.delayed(const Duration(milliseconds: 20));
-          socket.add('FW1'.codeUnits + [0x00]);       // 65 firmware
-          socket.add('Xprinter'.codeUnits + [0x00]);  // 66 manufacturer
-          socket.add('XP-T80A'.codeUnits + [0x00]);   // 67 model
-          socket.add('SN1'.codeUnits + [0x00]);       // 68 serial
+          socket.add('FW1'.codeUnits + [0x00]);            // 65 firmware
+          socket.add('Xprinter'.codeUnits + [0x00]);       // 66 manufacturer
+          socket.add('XP-T80A'.codeUnits + [0x00]);        // 67 model
+          socket.add('SN1'.codeUnits + [0x00]);            // 68 serial
+          socket.add('CHINA GB18030'.codeUnits + [0x00]);  // 69 (0x45) language
           await socket.flush();
           await socket.close();
         }
@@ -66,6 +67,7 @@ void main() {
       // Final aggregated model is also in the report.
       expect(report.device.protocol.name, 'escPos');
       expect(report.device.vendor, 'Xprinter');
+      expect(report.device.language, 'CHINA GB18030');
     });
 
     test('IPP port closed → ipp channel FAILED, others still succeed', () async {
