@@ -1,4 +1,4 @@
-# 探测打印机中文 ROM 类型（Big5 / GBK / 不支持） — 设计
+# 探测打印机中文 ROM 类型（Big5 / GBK / 未知） — 设计
 
 **日期：** 2026-05-20
 **状态：** 已批准（待 spec review）
@@ -28,9 +28,9 @@ $ printf '\x1D\x49\x45' | nc 192.168.225.78 9100 | od -An -tx1
 **已知字符串约定**（从 Epson 文档 + 跨设备观察）：
 - `_CHINA GB18030` / `_CHINA GBK` → 简体（GB18030 是 GBK 超集，归为同一档）
 - `_HONG KONG BIG5` / `_TAIWAN BIG5` → 繁体
-- `_JAPAN ...` / `_KOREA ...` → 其他亚洲语言
-- `""`（空字符串） → 纯 ASCII 打印机，不支持中文
-- 命令无响应 → 老 firmware / clone 不实现 0x45，归为 `unknown`
+- `_JAPAN ...` / `_KOREA ...` → 其他亚洲语言（classifier 归 unknown）
+- `""`（空字符串） → 纯 ASCII 打印机，无中文 ROM（classifier 归 unknown）
+- 命令无响应 → 老 firmware / clone 不实现 0x45（classifier 归 unknown）
 
 ## 架构
 
@@ -52,17 +52,17 @@ app/lib/
 ### `lib/src/chinese_rom.dart`（新）
 
 ```dart
-enum ChineseRom { traditional, simplified, unsupported, unknown }
+enum ChineseRom { traditional, simplified, unknown }
 
 /// Classify the raw GS I 0x45 response into a coarse ROM bucket.
 /// - traditional: contains 'BIG5' (case-insensitive)
 /// - simplified:  contains 'GB' or 'GBK' (case-insensitive)
-/// - unsupported: empty string (printer responded but has no Chinese ROM)
-/// - unknown:     null (no response or non-string field), or any other value
+/// - unknown:     anything else (null, empty string, non-Chinese ROMs,
+///                clones that don't implement 0x45, garbage strings)
 ChineseRom classifyLanguage(String? raw);
 ```
 
-匹配优先级：先 BIG5（避免某些字符串同时含 BIG5 和 GB 时归错档）→ GB/GBK → 空 → unknown。
+匹配优先级：先 BIG5（避免某些字符串同时含 BIG5 和 GB 时归错档）→ GB/GBK → 其他一律 unknown。空字符串和 null 都进 unknown（用户不需要区分"打印机明确说无 ROM"和"打印机不认 0x45"两种状态）。
 
 ### `lib/src/escpos_identity.dart` 修改
 
@@ -110,7 +110,6 @@ Chinese ROM     : 简体 (GBK)
 - `Chinese ROM` 行：调 `classifyLanguage(device.language)`，映射到中文文案：
   - `traditional` → `繁体 (Big5)`
   - `simplified` → `简体 (GBK)`
-  - `unsupported` → `不支持`
   - `unknown` → `未知`
 
 复用现有 `_row(label, value)` helper。新增一个 `_chineseRomText(ChineseRom)` 私有 helper 做 enum → 中文文案映射。
@@ -174,7 +173,7 @@ mergeDeviceInfo → DeviceInfo.language = identity.language
 - `'_CHINA GB18030'` → simplified
 - `'_CHINA GBK'` → simplified
 - `'_CHINA GB'` → simplified（确认前缀匹配）
-- `''`（空字符串） → unsupported
+- `''`（空字符串） → unknown
 - `null` → unknown
 - `'_JAPAN JIS'` → unknown
 - `'random gibberish'` → unknown
@@ -193,7 +192,7 @@ mergeDeviceInfo → DeviceInfo.language = identity.language
 ## Non-goals
 
 - 不动 ch2 GS I 的 channel card summary（保持 `EPSON / TM-T88III`） — 卡片空间有限，新信息走 DeviceInfo 面板。
-- 不做 UI 颜色 / 警告提示（不支持时不变红）。`unsupported` / `unknown` 仅文案。
+- 不做 UI 颜色 / 警告提示。`unknown` 仅文案。
 - 不做"自动路由文字 vs 图片打印" — 是业务上层的事，本特性只把信号暴露出来。
 - 不做跨厂商的 language 字符串归一化（不把 `_CHINA GB18030` 改成 `Chinese (GBK)` 之类）。原始字符串直显，让用户可以看到打印机自报的原文。
 
