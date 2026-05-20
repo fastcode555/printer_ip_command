@@ -24,6 +24,8 @@ void main() {
     expect(find.text('E2QG064874'), findsOneWidget);
     expect(find.text('192.168.225.78'), findsOneWidget);
     expect(find.text('escPos'), findsOneWidget);
+    // onCopy is null → no copy icon
+    expect(find.byIcon(Icons.copy_outlined), findsNothing);
   });
 
   testWidgets('renders em-dash for null fields', (tester) async {
@@ -35,5 +37,24 @@ void main() {
     await tester.pumpWidget(_wrap(const DeviceInfoPanel(device: device)));
 
     expect(find.text('—'), findsWidgets);
+    expect(find.byIcon(Icons.copy_outlined), findsNothing);
+  });
+
+  testWidgets('onCopy non-null → copy icon renders and triggers callback',
+      (tester) async {
+    var tapped = false;
+    const device = DeviceInfo(
+      host: '192.168.225.78',
+      protocol: Protocol.escPos,
+    );
+
+    await tester.pumpWidget(_wrap(DeviceInfoPanel(
+      device: device,
+      onCopy: () => tapped = true,
+    )));
+
+    expect(find.byIcon(Icons.copy_outlined), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.copy_outlined));
+    expect(tapped, isTrue);
   });
 }
